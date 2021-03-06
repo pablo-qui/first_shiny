@@ -35,25 +35,34 @@ ui <- navbarPage( "Sytolic Pressure Dataset",
                   tabPanel("Densities",
                       fluidPage(
                         sidebarLayout(
-                          sidebarPanel(
+                          sidebarPanel( h4("Select the group of population of which you want to see the systolic pressure density." ),
+                                        h5("You can select all form the same class to see a comparison of the densities."),
+                                        h5("Smoking habits:"),
                             checkboxInput("smo", label = "Smokers", value = F),
                             checkboxInput("non", label = "Non Smokers", value = F),
+                            h5("Weight class:"),
                             checkboxInput("pro", label = "Proper Weight", value = F),
                             checkboxInput("over", label = "Overweight", value = F),
-                            checkboxInput("obe", label = "Obese", value = F)
+                            checkboxInput("obe", label = "Obese", value = F),
+                            h5("You can also generate a report with these graphs and information for each class."),
+                            downloadButton("rep", "Generate report")
                             
                           ),
                           
                           
                           mainPanel(
-                            plotOutput(outputId ="density" )
-                          )
+                            
+                            splitLayout(
+                            plotOutput(outputId ="density"),
+                            plotOutput(outputId = "density2")
+                            )#splitlayout
+                            
+                            #vertical layout
+                            )#mainpanel
                           
                         )#sidebarlayout
                         
                       )#fluidpage
-                           ),#tabpanel
-                  tabPanel("Proportions"
                            ),#tabpanel
                   tabPanel("msleep",
                            fluidPage(
@@ -131,19 +140,20 @@ server <- function(input, output, session) {
     if (input$smo && input$non){
       ggplot(Blood1,aes(SystolicBP,color=Smoke))+geom_density()}
     else if (input$non){
-      ggplot(NonSmokers,aes(SystolicBP))+geom_density(color="blue")}
-    else if (input$smo){ggplot(NonSmokers,aes(SystolicBP))+geom_density(color="blue")}
-    else if (input$pro && input$over && input$obe){
-      ggplot(Blood1,aes(SystolicBP,color=Overwt))+geom_density()
-    }
+      ggplot(NonSmokers,aes(SystolicBP))+geom_density(color="blue")+ggtitle("Non Smokers")}
+    else if (input$smo){ggplot(Smokers,aes(SystolicBP))+geom_density(color="blue")+ggtitle("Smokers")}
     
+  })
+  output$density2 = renderPlot({
     
+    if (input$pro && input$over && input$obe){
+      ggplot(Blood1,aes(SystolicBP,color=Overwt))+geom_density()}
     else if (input$pro){
-      ggplot(Fit,aes(SystolicBP))+geom_density(color="blue")}
+      ggplot(Fit,aes(SystolicBP))+geom_density(color="blue")+ggtitle("Proper Weight")}
     else if (input$over){
-      ggplot(Overweight,aes(SystolicBP))+geom_density(color="blue")}
+      ggplot(Overweight,aes(SystolicBP))+geom_density(color="blue")+ggtitle("Overweight")}
     else if (input$obe){
-      ggplot(Obese,aes(SystolicBP))+geom_density(color="blue")}
+      ggplot(Obese,aes(SystolicBP))+geom_density(color="blue")+ggtitle("Obese") }
     
   })
   
@@ -177,6 +187,13 @@ server <- function(input, output, session) {
   )
   output$histSummary <- renderPrint(summary(samples()))
   output$histTable <- renderTable(samples())
+  
+  output$rep <- downloadHandler(
+    filename = "report.pdf",
+    content = function(file)
+      tempReport <- file.path(tempdir(), "report.Rmd")
+  )
+  
   
   output$report <- downloadHandler(
     # For PDF output, change this to "report.pdf"
