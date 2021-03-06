@@ -13,6 +13,10 @@ require("shinyjs")
 library(Stat2Data)
 data(Blood1)
 
+Blood1$Smoke <- as.factor(Blood1$Smoke)
+Blood1$Overwt <- as.factor(Blood1$Overwt)
+
+
 list_choices <-  unique(msleep$vore)
 list_choices = list_choices[!is.na(list_choices)]
 names(list_choices) = paste0(list_choices,"vore")
@@ -23,17 +27,24 @@ Fit <- Blood1 %>% filter(Overwt==0)
 Overweight <- Blood1 %>% filter(Overwt==1)
 Obese <- Blood1 %>% filter(Overwt==2)
 
+levels(Blood1$Smoke) <- c('Non Smoker','Smoker')
+levels(Blood1$Overwt) <- c('Proper Weight','Overweight','Obese')
 population <- c("Smokers","Non Smokers","Proper Weight","Overweight","Obese")
-
 # Define UI for application that draws a histogram
 ui <- navbarPage( "Sytolic Pressure Dataset",
                   tabPanel("Densities",
                       fluidPage(
                         sidebarLayout(
                           sidebarPanel(
-                            selectInput("dens",label = h4("Select the population"),
-                                        choices = character(0),selected = 1)
+                            checkboxInput("smo", label = "Smokers", value = F),
+                            checkboxInput("non", label = "Non Smokers", value = F),
+                            checkboxInput("pro", label = "Proper Weight", value = F),
+                            checkboxInput("over", label = "Overweight", value = F),
+                            checkboxInput("obe", label = "Obese", value = F)
+                            
                           ),
+                          
+                          
                           mainPanel(
                             plotOutput(outputId ="density" )
                           )
@@ -51,6 +62,7 @@ ui <- navbarPage( "Sytolic Pressure Dataset",
                                  selectInput("select", label= h3("Plot by type of alimentation"),
                                              choices=character(0),
                                              selected=1)
+                                 
                                ),
                                mainPanel(
                                  plotOutput(outputId = "plot", click = "plot_click"),
@@ -113,21 +125,28 @@ server <- function(input, output, session) {
                     selected = tail(list_choices, 1)
   )
   
-  updateSelectInput(session, "dens",
-                    choices = population,
-                    selected = tail(list_choices,1))
+
   output$density = renderPlot({
-    if (input$dens=='Smokers'){
-    ggplot(Blood1 %>% filter(Smoke==1),aes(SystolicBP))+geom_density()}
-    else if (input$dens=='Non Smokers'){
-      ggplot(Blood1 %>% filter(Smoke==0),aes(SystolicBP))+geom_density()}
-    else if (input$dens=='Proper Weight'){
-      ggplot(Blood1 %>% filter(Overwt==0),aes(SystolicBP))+geom_density()}
-    else if (input$dens=='Overweight'){
-      ggplot(Blood1 %>% filter(Overwt==1),aes(SystolicBP))+geom_density()}
-    else if (input$dens=='Obese'){
-      ggplot(Blood1 %>% filter(Overwt==2),aes(SystolicBP))+geom_density()}
+    p <- ggplot(Blood1)
+    if (input$smo && input$non){
+      ggplot(Blood1,aes(SystolicBP,color=Smoke))+geom_density()}
+    else if (input$non){
+      ggplot(NonSmokers,aes(SystolicBP))+geom_density(color="blue")}
+    else if (input$smo){ggplot(NonSmokers,aes(SystolicBP))+geom_density(color="blue")}
+    else if (input$pro && input$over && input$obe){
+      ggplot(Blood1,aes(SystolicBP,color=Overwt))+geom_density()
+    }
+    
+    
+    else if (input$pro){
+      ggplot(Fit,aes(SystolicBP))+geom_density(color="blue")}
+    else if (input$over){
+      ggplot(Overweight,aes(SystolicBP))+geom_density(color="blue")}
+    else if (input$obe){
+      ggplot(Obese,aes(SystolicBP))+geom_density(color="blue")}
+    
   })
+  
   output$plot = renderPlot({
     ggplot(msleep %>% filter(vore==input$select)
            , aes(bodywt, sleep_total, colour = vore)) +
